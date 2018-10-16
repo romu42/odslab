@@ -9,12 +9,9 @@ The configuration needs to be adjusted to better fit this setup.
 
         sudo vim /etc/opendnssec/conf.xml
 
-    The repository list was adjusted in a previous lab.
+    The repository list was adjusted in a [previous lab](hsm-testing.md).
 
-2. We will be rolling keys in a rapid pace, burning up a lot of keys in a
-   year.  The default setting is to pre-generate keys for a year, which
-   will take a long time with so many keys.  So we want to decrease this by
-   modifying the setting AutomaticKeyGenerationPeriod to:
+2. We will be rolling keys in a rapid pace, burning up a lot of keys in a year. The default setting is to pre-generate keys for a year, which will take a long time with so many keys.  So we want to decrease this by modifying the setting AutomaticKeyGenerationPeriod to:
 
         <AutomaticKeyGenerationPeriod>P2D</AutomaticKeyGenerationPeriod>
 
@@ -54,6 +51,7 @@ We will use the provided KASP policy "lab". It uses very low values on the timin
           </Validity>
           <Jitter>PT2M</Jitter>
           <InceptionOffset>PT3600S</InceptionOffset>
+          <MaxZoneTTL>PT300S</MaxZoneTTL>
         </Signatures>
 
 4. The TTL and safety margins for the keys are also lower:
@@ -112,7 +110,6 @@ We will use the provided KASP policy "lab". It uses very low values on the timin
 
 1. At this point we should start the OpenDNSSEC daemons.  Both enforcer and signer daemons are started using:
 
-        sudo mkdir /var/run/opendnssec
         sudo ods-control start
 
    The creating of /var/run/opendnssec is only necessary when having rebooted the machine.  This should be handled by the package management.
@@ -141,11 +138,11 @@ Zones can be added in two ways, either by command line or by editing the zonelis
 
 3. Have a look on the signconf:
 
-        less /var/opendnssec/signconf/groupX.odslab.se.xml
+        less /var/opendnssec/signconf/group*.odslab.se.xml
 
 4. Have a look on the signed zone file:
 
-        less /var/cache/bind/zones/signed/groupX.odslab.se
+        less /var/cache/bind/zones/signed/group*.odslab.se
 
 ## Publish the Signed Zone
 
@@ -224,13 +221,13 @@ The zone is now signed and we have verified that DNSSEC is working. It is then t
 
 ## KSK Rollover
 
-The KSK rollover is usually done at the end of its lifetime. But a key rollover can be enforced before that by issuing the rollover command.
+The KSK rollover is usually done at the end of its lifetime. But a key rollover can be forced before that by issuing the rollover command.
 
 1. Check how long time it is left before the KSK should be rolled:
 
         sudo ods-enforcer key list
 
-2. We will now enforce a key rollover. If a key rollover has been initiated then this command will be ignored:
+2. We will now force a key rollover. If a key rollover has been initiated then this command will be ignored:
 
         sudo ods-enforcer key rollover --zone groupX.odslab.se --keytype KSK
 
@@ -240,7 +237,7 @@ The KSK rollover is usually done at the end of its lifetime. But a key rollover 
 
 4. The DS RRs can be exported to the teacher once the new KSK is ready. Ask the teacher to upload it.
 
-        sudo ods-enforcer key export --ds --zone groupX.odslab.se --keystate ready > groupX.ds
+        sudo ods-enforcer key export --ds --zone groupX.odslab.se > groupX.ds
 
 5. Wait until the DS has been uploaded.
 
@@ -309,7 +306,7 @@ A second zone will be added by using the command line interface.
 
         cd /var/cache/bind/zones/unsigned/
         sudo cp groupX.odslab.se sub.groupX.odslab.se
-        vi sub.groupX.odslab.se
+        sudo vi sub.groupX.odslab.se
 
 2. Add it to OpenDNSSEC. You will get an error from *rndc*, because we have not configured BIND to know about the sub-zone. This will be done later.
 
@@ -364,6 +361,7 @@ We need to create a delegation to the zone that we just created. And also make s
                                --zone sub.groupX.odslab.se \
                                --keytag KEYTAG
 
+
 ## Zone Transfers
 
 OpenDNSSEC may also be fetch unsigned zones and/or serve signed zones using its built in zone transfer server.
@@ -409,10 +407,10 @@ In this lab we will set up OpenDNSSEC for outbound zone transfers protected with
     File contents:
 
         <Listener>
-        <Interface><Port>5353</Port></Interface>
+          <Interface><Port>5353</Port></Interface>
         </Listener>
 
-4. Almost done, time to update the zone list and select DNS as the output adapter.  For this we export the zonelist to get an up-to-date copy, modify it and import it back
+4. Almost done, time to update the zone list and select DNS as the output adapter.  For this we export the zonelist to get an up-to-date copy, modify the entry for groupX.odslab.se and import it back again.
 
         sudo ods-enforcer zonelist export
         sudo vim /etc/opendnssec/zonelist.xml
@@ -429,7 +427,7 @@ In this lab we will set up OpenDNSSEC for outbound zone transfers protected with
 
 6. Check that OpenDNSSEC is listening on port 5353.
 
-        sudo netstat -anp | grep :5353
+        sudo netstat -tulpan | grep :5353
 
 7. Use dig to verify that zone transfer works as expected.
 
@@ -470,3 +468,7 @@ In this lab we will set up OpenDNSSEC for outbound zone transfers protected with
 10.  You should also verify that the zone is served by BIND:
 
         dig +dnssec @127.0.0.1 groupX.odslab.se SOA
+
+
+---
+Next Section: [Testing](testing.md)

@@ -2,7 +2,7 @@
 
 1.  Install an authoritative nameserver:
 
-        sudo apt-get install bind9
+        sudo apt-get install -y bind9
 
 2.  Change its configuration to make sure its DNSSEC aware:
 
@@ -58,3 +58,7 @@
 8.  Try resolving the information from the resolver:
 
         dig groupX.odslab.se SOA
+
+
+---
+Next Section: [OpenDNSSEC lab](opendnssec-lab.md)
